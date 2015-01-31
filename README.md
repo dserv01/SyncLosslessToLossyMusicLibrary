@@ -12,4 +12,5 @@ Features of this script:
 
 *My Configuration:*
 All my devices have a backup/mirror folder on my Raspberry Pi server. My notebook synchronizes my complete lossless music library to the server with rsync. My android-smartphone on the other hand synchronizes its music library with the server using FolderSync. The Server regulary runs this script to convert the Music from my notebook's backup folder to the mirror folder of my smartphone.
+
 Notebook[lossless] -(rsync)-> Notebook's Backup Folder on Server[lossless] -(this script)-> Smartphone's Mirror Folder on Server[lossy] -(FolderSync)-> sdcard of smartphone[lossy]
