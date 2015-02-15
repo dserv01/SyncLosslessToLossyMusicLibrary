@@ -15,7 +15,8 @@ All my devices have a backup/mirror folder on my Raspberry Pi server. My noteboo
 
 Notebook[lossless] -(rsync)-> Notebook's Backup Folder on Server[lossless] -(this script)-> Smartphone's Mirror Folder on Server[lossy] -(FolderSync)-> sdcard of smartphone[lossy]
 
-__Setup__
+##Setup
+
 This script does not need to be installed. You may need to mark as executable by
 <pre>chmod +x ./SyncLosslessToLossyMusicLibrary.py</pre> but then it should run by simple <pre>./SyncLosslessToLossyMusicLibrary.py</pre>
 or
