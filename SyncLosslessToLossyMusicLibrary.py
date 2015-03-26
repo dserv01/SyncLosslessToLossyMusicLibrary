@@ -144,5 +144,5 @@ if(SYNC_DELETIONS):
         #Remove old empty folders
         for folder in dirs:
             if not os.path.exists(FROM_PATH+folder):
-                os.system("rmdir "+TO_PATH+folder)
+                os.system("rmdir "+escapePath(TO_PATH+folder))
 
