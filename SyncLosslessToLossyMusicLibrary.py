@@ -28,19 +28,21 @@ import subprocess
 ##### CONFIGURATION ###########################################################################################
 
 #This is the path of your lossless libray, e.g. '/home/YOURNAME/Music/'
-from_path = '/mnt/EXT-DISK0/THINKPAD-L412/Music/'
+FROM_PATH = '/mnt/EXT-DISK0/THINKPAD-L412/Music/'
 #This is the path of your lossy library, e.g. /mnt/SDCARD0/Music/'
-to_path = '/mnt/EXT-DISK0/MOTOROLA-RAZRI/Music/'
+TO_PATH = '/mnt/EXT-DISK0/MOTOROLA-RAZRI/Music/'
 
 #Use [INPUT] and [OUTPUT] to build your commands. Both will be replaced by the full path but without the file extension,
 #   e.g. /home/doms/Music/Beethoven/FuerElise.flac -> /home/doms/Music/Beethoven/FuerElise
 # You need to add the new and old fileextension for checking if the file is already converted and to remove old files
-commands = [['flac', 'ogg', 'oggenc -q 8 [INPUT].flac -o [OUTPUT].ogg'],
+COMMANDS = [['flac', 'ogg', 'oggenc -q 8 [INPUT].flac -o [OUTPUT].ogg'],
             ['mp3', 'mp3', 'cp [INPUT].mp3 [OUTPUT].mp3']
             #,['jpg', 'jpg', 'cp [INPUT].jpg [OUTPUT].jpg']
 ]
 
+#Remove files that are not in the original library
 SYNC_DELETIONS = True
+ASK_BEFORE_DELETE = False
 
 ###############################################################################################################
 
@@ -54,28 +56,28 @@ if(len(output)<10):
 
 
 #Check path format
-if(from_path[-1]!='/' or to_path[-1]!='/'):
+if(FROM_PATH[-1]!='/' or TO_PATH[-1]!='/'):
     print "Paths should end with \'/\'"
     exit(1)
 
 #Create library paths if not existence
 try:
-    if(not os.path.exists(to_path)):
-        os.makedirs(to_path)
-    elif(os.path.isfile(to_path)):
+    if(not os.path.exists(TO_PATH)):
+        os.makedirs(TO_PATH)
+    elif(os.path.isfile(TO_PATH)):
         raise Exception("Directory is file?!")
 except Exception as e:
-    print "Could not create "+to_path+" because "+str(e)
+    print "Could not create "+TO_PATH+" because "+str(e)
     print "Aborting"
     exit(1)
 
 
 #Create folders if not existing
 def createFolder(subpath):
-    if(os.path.exists(to_path+subpath) and os.path.isdir(to_path+subpath)):
+    if(os.path.exists(TO_PATH+subpath) and os.path.isdir(TO_PATH+subpath)):
         return True
     try:
-        os.makedirs(to_path+subpath)
+        os.makedirs(TO_PATH+subpath)
         return True
     except Exception as e:
         print "Could not create directory "+subpath
@@ -89,20 +91,20 @@ def escapePath(s):
 
 
 #Go through all files and convert
-for root, dirs, files in os.walk(from_path, topdown=False):
-    subpath = root[len(from_path):]+"/"
+for root, dirs, files in os.walk(FROM_PATH, topdown=False):
+    subpath = root[len(FROM_PATH):]+"/"
 
     if(createFolder(subpath)):
         for name in files:
             filename_without_extension = os.path.splitext(name)[0]
             file_extension = os.path.splitext(name)[1][1:]
 
-            source_path_without_extension = from_path+subpath+filename_without_extension
-            converted_path_without_extension = to_path+subpath+filename_without_extension
+            source_path_without_extension = FROM_PATH+subpath+filename_without_extension
+            converted_path_without_extension = TO_PATH+subpath+filename_without_extension
 
             #Get command tripple - sure you can do this more efficient with a hashmap but there will only be a few entries
             command_tripple = None
-            for tripple in commands:
+            for tripple in COMMANDS:
                 if(tripple[0] == file_extension):
                     command_tripple = tripple
                     break
@@ -120,23 +122,27 @@ for root, dirs, files in os.walk(from_path, topdown=False):
 
 #Remove old files
 if(SYNC_DELETIONS):
-    for root, dirs,files in os.walk(to_path, topdown=False):
-        subpath = root[len(to_path):]+"/"
+    for root, dirs,files in os.walk(TO_PATH, topdown=False):
+        subpath = root[len(TO_PATH):]+"/"
         
         for name in files:
             filename_without_extension = os.path.splitext(name)[0]
             file_extension = os.path.splitext(name)[1][1:]
 
-            source_path_without_extension = from_path+subpath+filename_without_extension
-            converted_path_without_extension = to_path+subpath+filename_without_extension
+            source_path_without_extension = FROM_PATH+subpath+filename_without_extension
+            converted_path_without_extension = TO_PATH+subpath+filename_without_extension
     
             original_exists = False
-            for tripple in commands:
+            for tripple in COMMANDS:
                 if(tripple[1] == file_extension and os.path.exists(source_path_without_extension+"."+tripple[0])):
                     original_exists = True
                     break
     
             if(not original_exists):
-                os.system("rm -i "+escapePath(converted_path_without_extension)+"."+file_extension)
+                os.system("rm "+("-i " if ASK_BEFORE_DELETE else "")+escapePath(converted_path_without_extension)+"."+file_extension)
 
+        #Remove old empty folders
+        for folder in dirs:
+            if not os.path.exists(FROM_PATH+folder):
+                os.system("rmdir "+TO_PATH+folder)
 
