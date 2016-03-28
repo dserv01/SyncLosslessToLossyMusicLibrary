@@ -23,127 +23,126 @@ __author__ = 'Dominik Krupke, dserv01.de'
 import os
 import subprocess
 
-
-
 ##### CONFIGURATION ###########################################################################################
 
-#This is the path of your lossless libray, e.g. '/home/YOURNAME/Music/'
-FROM_PATH = '/mnt/EXT-DISK0/THINKPAD-L412/Music/'
-#This is the path of your lossy library, e.g. /mnt/SDCARD0/Music/'
-TO_PATH = '/mnt/EXT-DISK0/MOTOROLA-RAZRI/Music/'
+# This is the path of your lossless libray, e.g. '/home/YOURNAME/Music/'
+FROM_PATH = '/home/doms/THINKPAD-L450/Music/'
+# This is the path of your lossy library, e.g. /mnt/SDCARD0/Music/'
+TO_PATH = '/home/foldersync/MotoX-Play/Music/'
 
-#Use [INPUT] and [OUTPUT] to build your commands. Both will be replaced by the full path but without the file extension,
+# Use [INPUT] and [OUTPUT] to build your commands. Both will be replaced by the full path but without the file extension,
 #   e.g. /home/doms/Music/Beethoven/FuerElise.flac -> /home/doms/Music/Beethoven/FuerElise
 # You need to add the new and old fileextension for checking if the file is already converted and to remove old files
 COMMANDS = [['flac', 'ogg', 'oggenc -q 8 [INPUT].flac -o [OUTPUT].ogg'],
             ['mp3', 'mp3', 'cp [INPUT].mp3 [OUTPUT].mp3']
-            #,['jpg', 'jpg', 'cp [INPUT].jpg [OUTPUT].jpg']
-]
+            # ,['jpg', 'jpg', 'cp [INPUT].jpg [OUTPUT].jpg']
+            ]
 
-#Remove files that are not in the original library
+# Remove files that are not in the original library
 SYNC_DELETIONS = True
 ASK_BEFORE_DELETE = False
 
 ###############################################################################################################
 
-#Check if vorbis-tools are installed
+# Check if vorbis-tools are installed
 output = subprocess.check_output("whereis oggenc", shell=True)
-if(len(output)<10):
+if (len(output) < 10):
     print "You need to install vorbis-tools first (Debian/Ubuntu: sudo apt-get install vorbis-tools)"
     print "If you don't use it, remove this check from the code"
     exit(1)
 
-
-
-#Check path format
-if(FROM_PATH[-1]!='/' or TO_PATH[-1]!='/'):
+# Check path format
+if (FROM_PATH[-1] != '/' or TO_PATH[-1] != '/'):
     print "Paths should end with \'/\'"
     exit(1)
 
-#Create library paths if not existence
+# Create library paths if not existence
 try:
-    if(not os.path.exists(TO_PATH)):
+    if (not os.path.exists(TO_PATH)):
         os.makedirs(TO_PATH)
-    elif(os.path.isfile(TO_PATH)):
+    elif (os.path.isfile(TO_PATH)):
         raise Exception("Directory is file?!")
 except Exception as e:
-    print "Could not create "+TO_PATH+" because "+str(e)
+    print "Could not create " + TO_PATH + " because " + str(e)
     print "Aborting"
     exit(1)
 
 
-#Create folders if not existing
+# Create folders if not existing
 def createFolder(subpath):
-    if(os.path.exists(TO_PATH+subpath) and os.path.isdir(TO_PATH+subpath)):
+    if (os.path.exists(TO_PATH + subpath) and os.path.isdir(TO_PATH + subpath)):
         return True
     try:
-        os.makedirs(TO_PATH+subpath)
+        os.makedirs(TO_PATH + subpath)
         return True
     except Exception as e:
-        print "Could not create directory "+subpath
+        print "Could not create directory " + subpath
         return False
 
 
-
-#Escape the paths for the os.system
+# Escape the paths for the os.system
 def escapePath(s):
     return s.replace(" ", "\ ").replace(")", "\)").replace("(", "\(").replace("&", "\&").replace("'", "\\\'")
 
 
-#Go through all files and convert
+# Go through all files and convert
 for root, dirs, files in os.walk(FROM_PATH, topdown=False):
-    subpath = root[len(FROM_PATH):]+"/"
+    subpath = root[len(FROM_PATH):] + "/"
 
-    if(createFolder(subpath)):
+    if (createFolder(subpath)):
         for name in files:
             filename_without_extension = os.path.splitext(name)[0]
             file_extension = os.path.splitext(name)[1][1:]
 
-            source_path_without_extension = FROM_PATH+subpath+filename_without_extension
-            converted_path_without_extension = TO_PATH+subpath+filename_without_extension
+            source_path_without_extension = FROM_PATH + subpath + filename_without_extension
+            converted_path_without_extension = TO_PATH + subpath + filename_without_extension
 
-            #Get command tripple - sure you can do this more efficient with a hashmap but there will only be a few entries
+            # Get command tripple - sure you can do this more efficient with a hashmap but there will only be a few entries
             command_tripple = None
             for tripple in COMMANDS:
-                if(tripple[0] == file_extension):
+                if (tripple[0] == file_extension):
                     command_tripple = tripple
                     break
 
-            if(not command_tripple):
+            if (not command_tripple):
                 continue
 
-            if(os.path.isfile(source_path_without_extension+"."+command_tripple[0])):
-                if(not os.path.exists(converted_path_without_extension+"."+command_tripple[1])):
-                    print "Processing "+subpath+name
-                    os.system(command_tripple[2].replace("[INPUT]",escapePath(source_path_without_extension)).replace("[OUTPUT]", escapePath(converted_path_without_extension)))
+            source_path = source_path_without_extension + "." + command_tripple[0]
+            goal_path = converted_path_without_extension + "." + command_tripple[1]
+            if (os.path.isfile(source_path)):
+                # If goal file does not exists or is older than source
+                if (not os.path.exists(goal_path) or os.path.getctime(source_path) > os.path.getctime(goal_path)):
+                    print "Processing " + subpath + name
+                    os.system(command_tripple[2].replace("[INPUT]", escapePath(source_path_without_extension)).replace(
+                        "[OUTPUT]", escapePath(converted_path_without_extension)))
             else:
-                print "Could not find "+subpath+name
+                print "Could not find " + subpath + name
 
+# Remove old files
+if (SYNC_DELETIONS):
+    for root, dirs, files in os.walk(TO_PATH, topdown=False):
+        subpath = root[len(TO_PATH):] + "/"
 
-#Remove old files
-if(SYNC_DELETIONS):
-    for root, dirs,files in os.walk(TO_PATH, topdown=False):
-        subpath = root[len(TO_PATH):]+"/"
-        
         for name in files:
             filename_without_extension = os.path.splitext(name)[0]
             file_extension = os.path.splitext(name)[1][1:]
 
-            source_path_without_extension = FROM_PATH+subpath+filename_without_extension
-            converted_path_without_extension = TO_PATH+subpath+filename_without_extension
-    
+            source_path_without_extension = FROM_PATH + subpath + filename_without_extension
+            converted_path_without_extension = TO_PATH + subpath + filename_without_extension
+
             original_exists = False
             for tripple in COMMANDS:
-                if(tripple[1] == file_extension and os.path.exists(source_path_without_extension+"."+tripple[0])):
+                if (tripple[1] == file_extension and os.path.exists(source_path_without_extension + "." + tripple[0])):
                     original_exists = True
                     break
-    
-            if(not original_exists):
-                os.system("rm "+("-i " if ASK_BEFORE_DELETE else "")+escapePath(converted_path_without_extension)+"."+file_extension)
 
-        #Remove old empty folders
+            if (not original_exists):
+                filepath_to_delete = escapePath(converted_path_without_extension) + "." + file_extension
+                print "Deleting "+filepath_to_delete
+                os.system("rm " + ("-i " if ASK_BEFORE_DELETE else "") + filepath_to_delete)
+
+        # Remove old empty folders
         for folder in dirs:
-            subpath = root[len(TO_PATH):]+"/"
-            if not os.path.exists(FROM_PATH+subpath+folder):
-                os.system("rmdir "+escapePath(TO_PATH+subpath+folder))
-
+            subpath = root[len(TO_PATH):] + "/"
+            if not os.path.exists(FROM_PATH + subpath + folder):
+                os.system("rmdir " + escapePath(TO_PATH + subpath + folder))
