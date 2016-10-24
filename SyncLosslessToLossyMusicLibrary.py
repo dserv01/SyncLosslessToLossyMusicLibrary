@@ -76,7 +76,7 @@ def createFolder(subpath):
         os.makedirs(TO_PATH + subpath)
         return True
     except Exception as e:
-        print "Could not create directory " + subpath
+        print "Could not create directory " + subpath+" because "+str(e)
         return False
 
 
